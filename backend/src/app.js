@@ -78,8 +78,8 @@ app.get("/view/login", (req, res) => {
 app.get("/view/new-post", (req, res) => {
   res.send(`
     <h1>Create Posts</h1>
-    <button onclick="logout()">Logout</button>
     <button onclick="goPosts()">View All Posts</button>
+    <button onclick="goProfile()">My Profile</button>
     <form id="postForm">
       <label>Title:</label><br>
       <input type="text" id="title" required /><br><br>
@@ -97,14 +97,12 @@ app.get("/view/new-post", (req, res) => {
         window.location.href = "/view/login";
       }
 
-      function logout() {
-        localStorage.removeItem("token");
-        alert("Logout success");
-        window.location.href = "/";
-      }
-
       function goPosts() {
         window.location.href = "/view/posts";
+      }
+
+      function goProfile() {
+        window.location.href = "/view/profile";
       }
 
       const form = document.getElementById("postForm");
@@ -132,6 +130,63 @@ app.get("/view/new-post", (req, res) => {
           alert("Gagal: " + (data.error || "Unknown error"));
         }
       });
+    </script>
+  `);
+});
+
+// Profile Page
+app.get("/view/profile", (req, res) => {
+  res.send(`
+    <h1>My Profile</h1>
+    <button onclick="goNewPost()">Back</button>
+    <button onclick="logout()">Logout</button>
+    <div id="profile-info">Loading profile...</div>
+
+    <script>
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("You have to login!");
+        window.location.href = "/view/login";
+      }
+
+      function goNewPost() {
+        window.location.href = "/view/new-post";
+      }
+      
+      function logout() {
+        localStorage.removeItem("token");
+        alert("Logout success");
+        window.location.href = "/";
+      }
+
+      async function fetchProfile() {
+        try {
+          const resProfile = await fetch("/user/profile", {
+            method: "GET",
+            headers: {
+              "Authorization": "Bearer " + token
+            }
+          });
+
+          const data = await resProfile.json();
+          const profileInfoDiv = document.getElementById("profile-info");
+
+          if (resProfile.status === 200) {
+            profileInfoDiv.innerHTML = \`
+              <p><b>Username:</b> \${data.username}</p>
+              <p><b>Email:</b> \${data.email}</p>
+              <p><b>Joined:</b> \${data.joined_at}</p>
+            \`;
+          } else {
+            profileInfoDiv.innerHTML = "<p>Error fetching profile: " + (data.error || "Unknown error") + "</p>";
+          }
+        } catch (err) {
+          console.error(err);
+          document.getElementById("profile-info").innerHTML = "<p>An error occurred while fetching profile.</p>";
+        }
+      }
+
+      fetchProfile();
     </script>
   `);
 });
@@ -208,4 +263,4 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
